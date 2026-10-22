@@ -128,7 +128,25 @@ def reading_order(blocks):
             if bx1 <= ax0 + 2:
                 return 1
         return (ay0, ax0) > (by0, bx0) or -((ay0, ax0) < (by0, bx0))
-    return sorted(blocks, key=functools.cmp_to_key(compare))
+    return sorted(fold_nested(blocks), key=functools.cmp_to_key(compare))
+
+
+def fold_nested(blocks):
+    """Merge text blocks that lie inside another block (such as a word
+    patched into a slide after export, which lands at the end of the page's
+    text) into that block, with the lines in position order."""
+    blocks = [b for b in blocks if b.get("lines")]
+    outer = []
+    for block in sorted(blocks, key=lambda b: -pymupdf.Rect(b["bbox"]).get_area()):
+        home = next((o for o in outer
+                     if (pymupdf.Rect(o["bbox"]) + (-2, -2, 2, 2))
+                     .contains(pymupdf.Rect(block["bbox"]))), None)
+        if home is None:
+            outer.append(dict(block, lines=list(block["lines"])))
+        else:
+            home["lines"] = sorted(home["lines"] + block["lines"],
+                                   key=lambda l: (l["bbox"][1], l["bbox"][0]))
+    return outer
 
 
 def slide_items(page):
@@ -151,7 +169,11 @@ def slide_items(page):
             if (bullet and bullet[0] == "–" and items
                     and any(abs(bullet[1] - x) < 4 for x in items[-1][1])):
                 text, xs, bullet = "– " + text, [bullet[1]], ""
-            bbox = line["bbox"]
+            # The line's box, ending at its last visible character rather
+            # than any trailing space.
+            ink = [c["bbox"][2] for s in line["spans"] for c in s["chars"]
+                   if not c["c"].isspace()]
+            bbox = (*line["bbox"][:2], max(ink), line["bbox"][3])
             size = line["spans"][0]["size"]
             if items:
                 prev = items[-1]
