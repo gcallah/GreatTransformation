@@ -13,6 +13,11 @@ FORCE:
 tests: FORCE
 	echo "Here is where you should run your tests."
 
+# Regenerate NAME.html (and NAME/slide-NN.jpg) from each NAME.pdf.
+# Needs PyMuPDF: pip install pymupdf
+html: FORCE
+	python3 utils/pdf2html.py
+
 github:
 	-git commit -a 
 	git push origin master
