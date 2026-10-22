@@ -35,6 +35,7 @@ PAGE = """<!DOCTYPE html>
 </head>
 <body>
   <header>
+    <p class="home"><a href="index.html">&larr; The Great Transformation</a></p>
     <h1>{title}</h1>
     <p><a href="{pdf}">Download PDF</a> &middot; {count} slides</p>
   </header>
